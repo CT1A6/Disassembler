@@ -1,9 +1,11 @@
 *-----------------------------------------------------------
-* Title      :
-* Written by :
-* Date       :
+* Title      :  Dissassmbler Project
+* Written by :  Cate Yochum & Travis Henderson
+* Date       : 17/04/22
 * Description:
 * Result from HEXGET is stored in D6.
+* Starting address is stored in A7.
+* Ending address is stored in A6.
 *-----------------------------------------------------------
     ORG    $1000
 START:                  ; first instruction of program
@@ -28,6 +30,8 @@ ENDA    LEA     MESSAGE2,A1 *Prompts user for ending address.
         
         JSR     HEXGET
         MOVE.L  D6,A6       *Move ending address into A6.
+        
+        MOVE.W  #$4E71,D1
         
         SIMHALT       
         
@@ -61,7 +65,7 @@ CR          EQU     $0D
 LF          EQU     $0A
 MESSAGE1    DC.B    'Enter starting memory address:',CR,LF,0
 MESSAGE2    DC.B    'Enter an ending memory address:',CR,LF,0
-NOP         EQU     $4E71
+NOP         DC.W     $4E71
 
     END    START        ; last line of source
 
