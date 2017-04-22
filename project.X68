@@ -3,9 +3,16 @@
 * Written by :  Cate Yochum & Travis Henderson
 * Date       : 17/04/22
 * Description:
+*
 * Result from HEXGET is stored in D6.
 * Starting address is stored in A7.
 * Ending address is stored in A6.
+*
+* THINGS THE PROGRAM DOES SO FAR:
+* - Takes a starting address, and ending address, and stores
+* them into Address Registers.
+* - Can iterate the starting address A7 to be equal to the
+* ending address A6.
 *-----------------------------------------------------------
     ORG    $1000
 START:                  ; first instruction of program
@@ -31,9 +38,15 @@ ENDA    LEA     MESSAGE2,A1 *Prompts user for ending address.
         JSR     HEXGET
         MOVE.L  D6,A6       *Move ending address into A6.
         
-        MOVE.W  #$4E71,D1
+*----- Loop Moves Through Contiguous Memory -----  
+        MOVE.W  A6,D7       *D7 contains the ending address, have to use data register for compare.      
+SEARCH  MOVE.W  A7,D6       
+        CMP.W   D6,D7       *Check if A7 has reached the ending address, A6.
+        BEQ     END         *If equal just end program.
+        ADDA.W  #$1,A7
+        BRA     SEARCH
         
-        SIMHALT       
+END     SIMHALT       
         
 *---- Hex Conversion Routines ----      
 HEXGET  CLR     D7          *Clear these registers at the very beginning to avoid any weird stuff.
