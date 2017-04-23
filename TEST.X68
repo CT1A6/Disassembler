@@ -4,7 +4,7 @@
 * Date       :
 * Description:
 *-----------------------------------------------------------
-    ORG    $1000
+    ORG    $3000
 START:                  ; first instruction of program
 
 * Put program code here
@@ -19,6 +19,7 @@ TEST    NOP
 * Put variables and constants here
 
     END    START        ; last line of source
+
 
 *~Font name~Courier New~
 *~Font size~10~
