@@ -44,11 +44,11 @@ ENDA
         
 *-------------------------------------- Loop Moves Through Contiguous Memory ----------------------------------------------------
 PRINTCOUNT
-        MOVE.B  #0,D5       *Resets count for printing.
+        MOVE.B  #0,COUNTER       *Resets count for printing.
 SEARCH   
-        CMP.B   #8,D5       *If we've printed 8 elements, ask the user if they want to see the next 8 elements.
+        CMP.B   #8,COUNTER       *If we've printed 8 elements, ask the user if they want to see the next 8 elements.
         BEQ     PRINTMORE
-        ADD.B   #1,D5  
+        ADD.B   #1,COUNTER  
         CMP.W   A7,A6        *Check if A7 has reached the ending address, A6.
         BEQ     END          *If equal just end program.
         MOVE.W  A7,D6        *This moves the current address into a data register for printing the address to the console.
@@ -78,12 +78,19 @@ COMPARE
         CMP.W   RTS_OP,D7   *see if D7 is RTS machine code
         BEQ     RTS_OUT
         
-        ROL.W   #8,D7       *To check the MSByte first, a rotation needs to be performed.
+        ROL.W   #8,D7       *Comparison for JSR, to check the MSByte first, a rotation needs to be performed.
         CMP.B   JSR_OP,D7   *see if D7 begins with the opcode for JSR
         BEQ     CHECKNB     *Branch to check next bytes
         ROL.W   #8,D7       *Otherwise restore the data in D7 to how it was before the comparison.
         
-        CMP.W
+        ROL.W   #4,D7       *Comparison for AND, move the nibble to the LSB side for comparison.
+        CLR     D5
+        MOVE.B  D7,D5
+        AND.B   NIBBLEMASK,D5   *Mask the bits, so the opcode can be determined.
+        CMP.B   AND_OP,D5
+        BEQ     AND_OUT
+        ROR.W   #4,D7   *If it's not a match, put the data back the way it was.
+        
                 
         BNE     ERROR_OUT        
         BRA     SEARCH
@@ -166,6 +173,15 @@ LONGADDR
          MOVE.B #14,D0        *Displays what's in A1
          TRAP   #15
          BRA    SEARCH 
+*--------------------------------------- AND PRINTING ----------------------------------------------------
+AND_OUT
+*        ROR.W   #4,D7    *Put the data back the way it was.
+*        MOVE.W  D7,D5   *Free to manipulate the data, without affecting the original, D7.
+*        ASL.W   #4,D5   *Get rid of MSNibble.
+        LEA     TESTM,A1 *outputs "RTS"
+        MOVE.B  #14,D0        *Displays what's in A1
+        TRAP    #15
+        BRA     SEARCH
 *---------------------------------------  UNRECOGNIZED PRINT OUT ----------------------------------------------------
 ERROR_OUT
         MOVE.W  D6,D1       *Move the address into D1 for printing.
@@ -220,18 +236,22 @@ RETGET
 *                                           CONSTANTS
 *----------------------------------------------------------------------------------------------------------------------
 
-* MESSAGES
+* MESSAGES/VARIABLES
 CR          EQU     $0D
 LF          EQU     $0A
 MESSAGE1    DC.B    'Enter starting memory address:',CR,LF,0
 MESSAGE2    DC.B    'Enter an ending memory address:',CR,LF,0
 MESSAGE3    DC.B    'Press 1 to see more memory',CR,LF,0
 MESSAGE4    DC.B    'Press 0 to exit',CR,LF,0
+TESTM       DC.B    'TEST',CR,LF,0
+COUNTER     DC.B    0
+NIBBLEMASK  DC.B    $000F
+SBITMASK    DC.B    $003F *Six bit mask.
 
 ;OP CODES
 
 ADD_OP      DC.B     $D     *Op Code for ADD, ADDA, but NOT ADDI and ADDQ
-AND_OP      DC.B     $C     *Op Code for AND
+AND_OP      DC.B     $0C     *Op Code for AND
 BRA_OP      DC.B     $60    *Op Code for branching 
 JSR_OP      DC.B     $4E    *First two bytes of JSR
 MOVE_OP     DC.B     $0     *Op Code for Move, MoveQ
@@ -250,6 +270,8 @@ ERROR_STRING       DC.B    ' DATA $WXYZ',CR,LF,0
 NEW_LINE    DC.B    CR,LF,0
 
     END START ; last line of source
+
+
 
 
 *~Font name~Courier New~
