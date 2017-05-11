@@ -1,1 +1,9 @@
+----- May 10th -----
+-> I tried to implement a buffer/a string that dynamically grows.  This is only used for the ADD operation I began.
 
+-> I used a bit mask for both ADD and ADDA (has no functionality) so that they can be recognized.  Because of this,
+I have a comparison that checks for #$FFFF, at the beginnig because bitmasks don't work on all one's.  So all it
+does is print 'ADD', still need to do EA stuff.
+
+-> I got rid of the subroutine that prints the addresses, and instead put it towards the beginning of the SEARCH subroutine,
+I think this simplifies a little more, and will avoid any JSRs that are out of range.
