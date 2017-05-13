@@ -7,3 +7,14 @@ does is print 'ADD', still need to do EA stuff.
 
 -> I got rid of the subroutine that prints the addresses, and instead put it towards the beginning of the SEARCH subroutine,
 I think this simplifies a little more, and will avoid any JSRs that are out of range.
+
+--- May 13th ----
+-> Made some progress on ADD.  It will print the size of operation and, right now it can only print the data register when it 
+is the <Ea>.  Example:
+ADD.B D7,$2
+
+Will only print:
+ADD.B D7
+
+-> I think I have made the part for recognizing the register number fairly modular, so hopefully we can implement it into other op-codes,
+because it works with JSR/RTS.
