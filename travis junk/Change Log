@@ -1,4 +1,4 @@
------ May 10th -----
+------------------------------------------------------ MAY 10th --------------------------------------------------------------
 -> I tried to implement a buffer/a string that dynamically grows.  This is only used for the ADD operation I began.
 
 -> I used a bit mask for both ADD and ADDA (has no functionality) so that they can be recognized.  Because of this,
@@ -8,7 +8,7 @@ does is print 'ADD', still need to do EA stuff.
 -> I got rid of the subroutine that prints the addresses, and instead put it towards the beginning of the SEARCH subroutine,
 I think this simplifies a little more, and will avoid any JSRs that are out of range.
 
---- May 13th ----
+------------------------------------------- MAY 13th --------------------------------------------------------------------------
 -> Made some progress on ADD.  It will print the size of operation and, right now it can only print the data register when it 
 is the <Ea>.  Example:
 ADD.B D7,$2
@@ -16,5 +16,9 @@ ADD.B D7,$2
 Will only print:
 ADD.B D7
 
--> I think I have made the part for recognizing the register number fairly modular, so hopefully we can implement it into other op-codes,
-because it works with JSR/RTS.
+-> I think I have made the part for recognizing the register number fairly modular, so hopefully we can implement it into other 
+op-codes, because it works with JSR/RTS.
+
+-> I still haven't implemented anything Cate has done into what I've written yet, because I'm afraid of breaking things. haha.
+
+-> The program has some unfinished stuff in it, but should stil run fine with the test file I have in this folder.
