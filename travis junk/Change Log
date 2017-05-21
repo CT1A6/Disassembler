@@ -22,3 +22,9 @@ op-codes, because it works with JSR/RTS.
 -> I still haven't implemented anything Cate has done into what I've written yet, because I'm afraid of breaking things. haha.
 
 -> The program has some unfinished stuff in it, but should stil run fine with the test file I have in this folder.
+
+------------------------------------------- MAY 21st --------------------------------------------------------------------------
+-> ADD now does every combination for Dn + <EA> -> <EA>.  This means it works when the destination is an address of short/long,
+(An), (An)+, -(An).
+
+-> Next step for me will be to do Dn + <EA> -> Dn combinations.
