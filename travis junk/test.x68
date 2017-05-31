@@ -8,17 +8,23 @@
 START:                  ; first instruction of program
 
 * Put program code here
-    ADD.L   D1,-(A4)
-    ADD.W   D5,(A1)+  
-    ADD.B   D7,(A6)    
+    *ADD.L   D1,-(A4)
+    *ADD.W   D5,(A1)+  
+    *ADD.B   D7,(A6)
+    *ADD.L   D4,$4567   
+    *ADD.L   D1,$1234ABCD
+    *ADD.W   D5,D7
+    ADD.W   $78,D4
+    *ADD.L   #34,D1
+    *ADD.B   $1234,D5
         
-    JSR TEST
+    *JSR TEST
     SIMHALT
 
 TEST
 
-    NOP
-    RTS
+    *NOP
+    *RTS
     SIMHALT             ; halt simulator
 
 * Put variables and constants here
