@@ -4,7 +4,7 @@
 * Date       : 17/05/30
 * Description:
 *
-* Result from HEXGET is stored in D6.
+* Result from HEXGET is sted in D6.
 * Starting address is stored in A7.
 * Ending address is stored in A6.
 * Working register for comparisons is D7.
@@ -22,7 +22,11 @@ TESTCODE
     *ADD.W   D5, (A1)+
     *ADD.B   D7, (A6)
     *NOP
+    OR.W    D1,D2
+    AND.B   D1, D2
+    MULS  D1,D2
     BRA     TEST
+    OR.W    D1,D2 
     ROR.W   $12
     ROL.W   $12345678
     LSL.W   $1234
@@ -86,7 +90,9 @@ SEARCH
         MOVE.W  A7,D6        *This moves the current address into a data register for printing the address to the console.
         MOVE.W  (A7)+,D7    *Move data from current place in memory into D7 for comparison, increments A7 by 2
         
-        
+        LEA    NEW_LINE,A1   *Essentially just puts '\n' on the screen.
+        MOVE.B #14,D0        *Displays what's in A1
+        TRAP   #15
         
         BRA     COMPARE
         
@@ -144,7 +150,13 @@ COMPARE
         BEQ     SUBI_OUT
 
         CMP.B   LEA_OP, D5
-        BEQ     LEA_OUT       
+        BEQ     LEA_OUT  
+
+        CMP.B   OR_DIVU_OP, D5
+        BEQ     OR_DIVU_OUT
+
+        CMP.B   AND_MULS_OP, D5
+        BEQ     AND_MULS_OUT     
         
         ROR.W   #4, D7      *Restore to orginal order     
         
@@ -324,12 +336,14 @@ ADDAN
         BRA     SEARCH       
         
 LITADDR
+        ROL.W   #3,D7   *Restore data to it's original bit representation.
+
         CLR     D5
         MOVE.B  D7,D5
         
-        AND.B   #$1,D5  *Check if it's size W
+        AND.B   #$1,D5  *Check if it's size L
         CMP.B   #$1,D5
-        BNE     SHORTADDEA  *Get the short address, otherwise continue for long address.
+        BNE     SHORTADDEA  *Get the WORD address, otherwise continue for long address.
         
         MOVE.B  #$0,(A1)+  *Null terminate the buffer, and print it..
         MOVEA.L #$2,A1
@@ -337,9 +351,9 @@ LITADDR
         TRAP    #15
         
         MOVE.W  (A7)+,D1    *Now print the literal address.
+        LSL.L   #8,D1       *Shift that address into the MSB.
         LSL.L   #8,D1
-        LSL.L   #8,D1
-        MOVE.W  (A7)+,D1
+        MOVE.W  (A7)+,D1    *Now put the LSB portion of the address into the register.
         CLR     D2
         MOVE.B  #16,D2      *This allows printing in base 16.
         MOVE.B  #15,D0      *Displays what's in D1 in base whatever is in D2.
@@ -373,10 +387,167 @@ SHORTADDEA
         BRA     SEARCH  
 
 
-DNDEST     
+DNDEST  
+        ROL.W   #8,D7   *Restore data to it's original bit representation.
+        ROL.W   #1,D7
+        
+        ROR.W   #3,D7   *Get the mode of the <EA> into position.
+        
+        CLR     D5
+        MOVE.B  D7,D5
+
+        ROL.W   #3,D7   *Restore the data!        
+   
+        AND.B   #$7,D5 *This clears the 4th bit, I don't need it.
+        
+        CMP.B   #$0,D5 *Is it a Data register?
+        BEQ     DADD
+        CMP.B   #$2,D5 *Is it (An)?
+        BEQ     PNADD
+        CMP.B   #$3,D5
+        BEQ     ANPADD  *Is it (An)+?
+        CMP.B   #$4,D5   
+        BEQ     ANNADD  *Is it -(An)?
+        CMP.B   #$7,D5   *Is it (xxx).L/W
+        BEQ     ADDRADD 
+        
+        BRA     ERROR_OUT *Anything else is an error.
+        
+DADD
+        MOVE.B  #'D',(A1)+  *Otherwise destination is a <Ea>, therefore the data register can be printed first.
+        
+        CLR     D5      *Now I'll begin finding the number of the register.
+        MOVE.B  D7,D5
+        AND.B   #$7,D5  *Mask D5 so it'll read 0xxx.
+        JSR     FINDREGNUMBER   *Get the Register number
+
+        MOVE.B  #',',(A1)+
+        
+        BRA     ADDCONTINUE
+PNADD
+        MOVE.B  #'(',(A1)+
+        MOVE.B  #'A',(A1)+
+        
+        CLR     D5      *Now I'll begin finding the number of the register.
+        MOVE.B  D7,D5
+        AND.B   #$7,D5  *Mask D5 so it'll read 0xxx.
+        JSR     FINDREGNUMBER   *Get the Register number
+        
+        MOVE.B  #')',(A1)+
+        MOVE.B  #',',(A1)+
+        
+        BRA     ADDCONTINUE
+ANPADD
+        MOVE.B  #'(',(A1)+
+        MOVE.B  #'A',(A1)+
+        
+        CLR     D5      *Now I'll begin finding the number of the register.
+        MOVE.B  D7,D5
+        AND.B   #$7,D5  *Mask D5 so it'll read 0xxx.
+        JSR     FINDREGNUMBER   *Get the Register number
+        
+        MOVE.B  #')',(A1)+
+        MOVE.B  #'+',(A1)+
+        MOVE.B  #',',(A1)+  
+ 
+        BRA     ADDCONTINUE   
+ANNADD
+        MOVE.B  #'-',(A1)+
+        MOVE.B  #'(',(A1)+
+        MOVE.B  #'A',(A1)+
+        
+        CLR     D5      *Now I'll begin finding the number of the register.
+        MOVE.B  D7,D5
+        AND.B   #$7,D5  *Mask D5 so it'll read 0xxx.
+        JSR     FINDREGNUMBER   *Get the Register number
+        
+        MOVE.B  #')',(A1)+
+        MOVE.B  #',',(A1)+
+
+        BRA     ADDCONTINUE
+ADDRADD
+        MOVE.B  #'$',(A1)+
+        
+        CLR     D5
+        MOVE.B  D7,D5   *This is to get the REG of either W/L.
+        AND.B   #7,D5   *Mask it to read xCCC.
+        CMP.B   #0,D5   *Is it word?
+        BEQ     WORDD
+        CMP.B   #1,D5   *Is it long?
+        BNE     ERROR_OUT   *Otherwise it is garbage.
+        
+        MOVE.B  #$0,(A1)+  *Null terminate the buffer, and print it..
+        MOVEA.L #$2,A1
+        MOVE.B  #14,D0 *Trap task 13 will print the NULL terminated string pointed to by (A1).
+        TRAP    #15
+        
+        MOVE.W  (A7)+,D1    *Now print the literal address.
+        LSL.L   #8,D1       *Shift that address into the MSB.
+        LSL.L   #8,D1
+        MOVE.W  (A7)+,D1    *Now put the LSB portion of the address into the register.
+        CLR     D2
+        MOVE.B  #16,D2      *This allows printing in base 16.
+        MOVE.B  #15,D0      *Displays what's in D1 in base whatever is in D2.
+        TRAP    #15
+        
+        MOVE.B  #$0,(A1)+   *Null termination.
+        MOVEA.L #$2,A1
+        MOVE.B  #14,D0
+        TRAP    #15
+        
+        MOVE.L   #0,D1  *Need to clear D1 because CLR does not work, and to rid of LONG address.
+        
+        MOVE.B  ',',(A1)+
+       
+        BRA     ADDCONTINUE       
+WORDD
+        MOVE.B  #$0,(A1)+  *Empty the buffer.
+        MOVEA.L #$2,A1
+        MOVE.B  #14,D0 *Trap task 13 will print the NULL terminated string pointed to by (A1).
+        TRAP    #15
+        
+        MOVE.W  (A7)+,D1    *Now print the literal address.
+        CLR     D2
+        MOVE.B  #16,D2      *This allows printing in base 16.
+        MOVE.B  #15,D0      *Displays what's in D1 in base whatever is in D2.
+        TRAP    #15
+        
+        MOVE.B  #$0,(A1)+   *Null termination.
+        MOVEA.L #$2,A1
+        MOVE.B  #14,D0
+        TRAP    #15
+        
+        MOVE.B  ',',(A1)+
+        
+        BRA     ADDCONTINUE         
+ADDCONTINUE      
+        MOVE.B  #'D',(A1)+  *All that's left is to print Dn, which is what this sub-routine does.
+        
+        ROR.W   #$8,D7  *It's dumb to rotate 9 bits, but whatever.
+        ROR.W   #$1,D7
+        
+        CLR     D5
+        MOVE.B  D7,D5   *Time to find the REG number for the data register.
+        AND.B   #$7,D5
+        JSR     FINDREGNUMBER
+        
+        MOVE.B  #$0,(A1)+      *Null terminate the string.
+        
+        MOVEA.L #$2,A1      *Print.
+        MOVE.B  #14,D0
+        TRAP    #15
+        
+        MOVE.B  #$0,(A1)+   *This just allows a newline to be printed.
+        MOVEA.L #$2,A1
+        MOVE.B  #13,D0
+        TRAP    #15       
+        
+        BRA     SEARCH
+        
 
         SIMHALT 
 *--------- END OF ADD ------------------------------ END OF ADD ----------------------------- END OF ADD --------------------------   
+ 
 
 SUB_OUT
 
@@ -402,14 +573,51 @@ LEA_OUT
         MOVE.B  #14,D0
         TRAP    #15     
         
-        *BRA     FINDREGNUMBER
-        
-
-             
+       *BRA     FINDREGNUMBER     
+          
         
         BRA SEARCH
+        
+OR_DIVU_OUT
+        ROL.W   #6, D7 *Get bits 8,7,6 to the far right
+        CLR  D5
+        MOVE.B  THREE_BIT_MASK, D5
+        AND.B   D7, D5
+        CMP.B   #$3, D5
+        BEQ     DIVU_OUT
+OR_OUT
+        LEA     OR_STRING, A1
+        MOVE.B  #14, D0
+        TRAP    #15
+        
+        BRA     SEARCH
+DIVU_OUT
+        LEA     DIVU_STRING, A1
+        MOVE.B  #14, D0
+        TRAP    #15
+        BRA     SEARCH
+      
+AND_MULS_OUT
+        ROL.W   #6, D7 *Get bits 8,7,6 to the far right
+        CLR  D5
+        MOVE.B  THREE_BIT_MASK, D5
+        AND.B   D7, D5
+        CMP.B   #$7, D5
+        BEQ     MULS_OUT
+AND_OUT 
+        LEA     AND_STRING, A1
+        MOVE.B  #14, D0
+        TRAP    #15
+        BRA     SEARCH
+        
+MULS_OUT  
+        LEA     MULS_STRING, A1
+        MOVE.B  #14, D0
+        TRAP    #15
+        BRA     SEARCH      
 
-*Decodes BCC, BRA, BLT, BGE
+
+*Decodes BCC, BRA, BLT, BGE------------------------------------------------------------------------------------------------------------*
 BXX
         ROL.W   #4,D7       *Rotate D7 left 4 to get the second 4 bits, the condition code (It was rotated so that 6 is to the far right)
         CLR     D5
@@ -765,7 +973,8 @@ TESTM       DC.B    'TEST',CR,LF,0
 BYTEMASK    DC.B    $00FF
 COUNTER     DC.B    0
 NIBBLEMASK  DC.B    $000F
-SBITMASK    DC.B    $003F       *Six bit mask.
+SBITMASK    DC.B    $003F       *Six bit mask
+THREE_BIT_MASK  DC.B    $0007
         
 ;SIZES
 BYTE    DC.B    $0
@@ -776,12 +985,14 @@ LONG    DC.B    $2
 
 ADDA_OP     DC.W     $D0C0      *Op Code for ADDA
 ADD_OP      DC.W     $D000
-AND_OP      DC.B     $0C        *Op Code for AND  
+AND_OP      DC.B     $0C        *Op Code for AND 
+AND_MULS_OP DC.B     $C 
 BXX_OP      DC.B     $6         *Op Code for branching 
 JSR_OP      DC.B     $4E        *First two bytes of JSR
 LEA_OP      DC.B     $4
 MOVE_OP     DC.B     $0         *Op Code for Move, MoveQ
 NOP_OP      DC.W     $4E71
+OR_DIVU_OP  DC.B     $8     
 RTS_OP      DC.W     $4E75
 SHIFT_OP    DC.B     $E         *LSL, LSR, ASL, ASR, ROL, ROR
 SUB_OP      DC.B     $9         *Op Code for SUB   
@@ -789,6 +1000,7 @@ SUBI_OP     DC.B     $04
 
 ;ASSEMBLY OUTPUT
 A_STRING        DC.B    ' A',0
+AND_STRING      DC.B    ' AND',0
 ASL_STRING      DC.B    ' ASL',0
 ASR_STRING      DC.B    ' ASR',0
 BCC_STRING      DC.B    ' BCC',0
@@ -796,12 +1008,16 @@ BGE_STRING      DC.B    ' BGE',0
 BLT_STRING      DC.B    ' BLT',0
 BRA_STRING      DC.B    ' BRA',0
 BYTE_MODE_STR   DC.B   '.B ',0
+D_STRING        DC.B    ' D',0
+DIVU_STRING     DC.B    ' DIVU',0
 JSR_STRING      DC.B    ' JSR',0
 LEA_STRING      DC.B    ' LEA',0
 LONG_MODE_STR   DC.B    '.L ',0
 LSL_STRING      DC.B    ' LSL',0
-LSR_STRING      DC.B    ' LSR',0 
+LSR_STRING      DC.B    ' LSR',0
+MULS_STRING     DC.B    ' MULS',0 
 NOP_STRING      DC.B    ' NOP',0
+OR_STRING       DC.B    ' OR',0
 ROL_STRING      DC.B    ' ROL',0
 ROR_STRING      DC.B    ' ROR',0
 RTS_STRING      DC.B    ' RTS',CR,LF,0
@@ -822,6 +1038,7 @@ NEW_LINE        DC.B    CR,LF,0
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 
