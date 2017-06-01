@@ -132,7 +132,12 @@ COMPARE
         CMP.B   JSR_OP,D7   *see if D7 begins with the opcode for JSR
         BEQ     CHECKNB     *Branch to check next bytes
         ROR.W   #8,D7       *Otherwise restore the data in D7 to how it was before the comparison.
-    
+        
+        ROL.W   #8,D7
+        CMP.B   SUBI_OP,D7 *The full byte for subi has to be checked, not just a masked nibble.
+        BEQ     SUBI_OUT
+        ROR.W   #8,D7
+        
         ROL.W   #4,D7       *Rotate so first 4 bits are on the right
         MOVE.B  NIBBLEMASK, D5
         AND.B   D7, D5
@@ -145,9 +150,6 @@ COMPARE
         
         CMP.B   SUB_OP, D5
         BEQ     SUB_OUT
-
-        CMP.B   SUBI_OP, D5
-        BEQ     SUBI_OUT
 
         CMP.B   LEA_OP, D5
         BEQ     LEA_OUT  
@@ -557,6 +559,7 @@ SIZE *Method determines .B/W/L
         
         MOVE.B  #'L',(A1)+
 RETURN1
+        MOVE.B  #' ',(A1)+
         RTS
 BSIZE
         MOVE.B  #'B',(A1)+
@@ -580,7 +583,6 @@ SUB_OUT
         MOVE.B  D7,D5
         AND.B   #3,D5
         JSR     SIZE    *Get the size and put it into the buffer.
-        MOVE.B  #' ',(A1)+
         
         ROL.W   #6,D7   *Restore data.
         
@@ -657,13 +659,26 @@ DNDESTS
         
         BRA     SEARCH     
 *------------------- SUB END ----------------------------------------------------------
+
+*---------------------------- BEGIN SUBI ------------------------------------------------
 SUBI_OUT
+        ROR.W   #8,D7 *Restore the data.
+        
+        MOVEA.L #$2,A1  *Begin buffer
         MOVE.B  #' ',(A1)+
         MOVE.B  #'S',(A1)+
         MOVE.B  #'U',(A1)+
         MOVE.B  #'B',(A1)+
         MOVE.B  #'I',(A1)+
         MOVE.B  #'.',(A1)+
+        
+        ROR.W   #6,D7   *Get the size of the operation.
+        MOVE.B  D7,D5
+        AND.B   #7,D5
+        JSR     SIZE
+        
+        
+*---------------------------- END SUBI ------------------------------------------------
 LEA_OUT
         LEA     LEA_STRING, A1
         MOVE.B  #14,D0          *Displays what's in A1
