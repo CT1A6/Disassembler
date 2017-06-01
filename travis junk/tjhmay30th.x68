@@ -672,10 +672,25 @@ SUBI_OUT
         MOVE.B  #'I',(A1)+
         MOVE.B  #'.',(A1)+
         
-        ROR.W   #6,D7   *Get the size of the operation.
+        ROR.W   #6,D7   *Get the size of the operation, to display b/w/l.
         MOVE.B  D7,D5
         AND.B   #7,D5
         JSR     SIZE
+        
+        MOVE.B  #$0,(A1)+   *Null terminate the string.
+        MOVEA.L #$2,A1      *Print.
+        MOVE.B  #14,D0
+        TRAP    #15
+        
+        CMP.B   #0,D5   *Compare size again!, to find the size of the immediate data that needs to come from memory.
+        BEQ     BGET
+        CMP.B   #1,D5
+        BEQ     WGET
+        CMP.B   #2,D5
+        BNE     ERROR_OUT   *If it's not equal to anything, then it's the wrong size.
+
+BGET
+WGET        
         
         
 *---------------------------- END SUBI ------------------------------------------------
